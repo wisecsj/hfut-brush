@@ -1,7 +1,12 @@
+"""
+v 2.0
+使用于各种情况，部分获取参数方法改成了用bs4
+"""
 # coding= utf-8
 import re
 import requests
 import xlrd
+from bs4 import BeautifulSoup
 
 save_url = "http://tkkc.hfut.edu.cn/student/exam/manageExam.do?1479131327464&method=saveAnswer"
 # index用于提示题目序号
@@ -87,6 +92,7 @@ def submit(ans, id, id2, id3, id4, index, retries=2):
             print("get failed", index)
             return ''
 
+
 # 此变量用于判断用户是否要继续刷课
 finished = 0
 
@@ -101,10 +107,14 @@ while finished == 0:
         xls = myfile.sheets()[x]
         for i in range(1, xls.nrows):
             title = xls.cell(i, 0).value
-            if x != 2:
-                answer = xls.cell(i, 7).value
-            else:
+            if x == 1 and lenOfXls == 2:
                 answer = xls.cell(i, 2).value
+            elif x == 1 and lenOfXls == 3:
+                answer = xls.cell(i, 7).value
+            elif x == 2 and lenOfXls == 3:
+                answer = xls.cell(i, 2).value
+            else:
+                answer = xls.cell(i, 7).value
             result[title] = answer
 
     body = ses.get(start_url, headers=headers)
@@ -112,11 +122,13 @@ while finished == 0:
     wb_data = body.text
     # print(wb_data)
 
-    urlId = re.findall(r'do\?(.*?)&method', start_url, re.S)[0]
+    urlId = re.findall(r'/student/exam/index\.do\?(.*?)&', wb_data, re.S)[0]
 
     eval = re.findall(r'eval(.*?)]\);', wb_data, re.S)[0]
 
-    examReplyId = re.findall(r'examReplyId=(.*?)&examId', wb_data, re.S)[0]
+    bs = BeautifulSoup(wb_data, 'lxml')
+    val = bs.form.input
+    examReplyId = val['value']
 
     examId = re.findall(r'<input type="hidden" name="examId" id="examId" value="(.*?)" />', wb_data, re.S)[0]
 
@@ -127,7 +139,6 @@ while finished == 0:
     examStudentExerciseId = re.findall(r'"examStudentExerciseId":(.*?),"exerciseId"',
                                        wb_data, re.S)[0]
 
-    print(examStudentExerciseId)
     examStudentExerciseId = int(examStudentExerciseId)
 
     # id对应exerciseID,id2对应examStudetExerciseId
