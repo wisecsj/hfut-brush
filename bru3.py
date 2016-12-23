@@ -1,6 +1,5 @@
 """
-v 2.0
-使用于各种情况，部分获取参数方法改成了用bs4
+v 3.0添加了验证码识别   api为：api.hfutoyj.cn/codeapi post 图片的字节码
 """
 # coding= utf-8
 import re
