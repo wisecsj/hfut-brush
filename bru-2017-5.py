@@ -28,6 +28,9 @@ login_url = "http://tkkc.hfut.edu.cn/login.do?"
 
 
 def getcode():
+    """
+    获取登录时所需要的验证码    
+    """
     im = ses.get("http://tkkc.hfut.edu.cn/getRandomImage.do")
     tmp1 = urllib.parse.quote_from_bytes(im.content)
     code = ses.post('http://api.hfutoyj.cn/codeapi', data={'image': tmp1})  # return verify code
@@ -35,12 +38,16 @@ def getcode():
 
 
 def get_new_data():
+    """
+    获取17年5月份，系统在登录时添加的随机字符串
+    """
     r = ses.get(login_url).text
     announce = re.findall(r'name="(.*?)" value="announce"', r)[0]
     return announce
 
-
+# 最大尝试登录次数（因为验证码机器学习识别率非百分百）
 rlt = 10
+# 当前已尝试的次数
 times = 1
 while rlt:
     announce = get_new_data()
