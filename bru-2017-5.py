@@ -28,9 +28,6 @@ login_url = "http://tkkc.hfut.edu.cn/login.do?"
 
 
 def getcode():
-    """
-    获取登录时所需要的验证码    
-    """
     im = ses.get("http://tkkc.hfut.edu.cn/getRandomImage.do")
     tmp1 = urllib.parse.quote_from_bytes(im.content)
     code = ses.post('http://api.hfutoyj.cn/codeapi', data={'image': tmp1})  # return verify code
@@ -38,21 +35,17 @@ def getcode():
 
 
 def get_new_data():
-    """
-    获取17年5月份，系统在登录时添加的随机字符串
-    """
     r = ses.get(login_url).text
     announce = re.findall(r'name="(.*?)" value="announce"', r)[0]
     return announce
 
-# 最大尝试登录次数（因为验证码机器学习识别率非百分百）
+
 rlt = 10
-# 当前已尝试的次数
 times = 1
 while rlt:
     announce = get_new_data()
     code = getcode().text
-    print("Trying " + str(times) + code)
+    print("Trying " + ' ' + code)
     logInfo = {
         announce: 'announce',
         "logname": ID,
@@ -61,8 +54,19 @@ while rlt:
     }
     res = ses.post(login_url, data=logInfo, headers=headers)
     # print(res.text)
-    if res.text.find("验证码错误") == -1:
-        print("Login Success")
+    if res.text.find("验证码错误") != -1:
+        print("Wrong verify code, Trying again ...")
+        continue
+    elif res.text.find("身份验证服务器未建立连接") != -1:
+        print("Wrong student number, Check and reinput please ...")
+        ID = input("请输入学号\n")
+        continue
+    elif res.text.find("密码不正确") != -1:
+        print("Wrong password, Check and reinput please ...")
+        Pwd = getpass.getpass("请输入密码\n")
+        continue
+    else:
+        print('Login Success !')
         break
     time.sleep(0.01)
     times += 1
