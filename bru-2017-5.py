@@ -42,18 +42,22 @@ def get_new_data():
 
 rlt = 10
 times = 1
-while rlt:
+while rlt>3:
     announce = get_new_data()
     code = getcode().text
     print("Trying " + ' ' + code)
     logInfo = {
         announce: 'announce',
+        'loginMethod': '{}button'.format(announce),
         "logname": ID,
         "password": Pwd,
         "randomCode": code
     }
     res = ses.post(login_url, data=logInfo, headers=headers)
     # print(res.text)
+    time.sleep(0.01)
+    times += 1
+    rlt -= 1
     if res.text.find("验证码错误") != -1:
         print("Wrong verify code, Trying again ...")
         continue
@@ -68,9 +72,7 @@ while rlt:
     else:
         print('Login Success !')
         break
-    time.sleep(0.01)
-    times += 1
-    rlt -= 1
+
 else:
     print("Maybe you typed wrong password")
     # 用于存放excel中question, answer键值对的字典
