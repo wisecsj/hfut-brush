@@ -208,7 +208,7 @@ class Brush:
         # id对应exerciseID,id2对应examStudetExerciseId
         for id in exerciseId:
             next_url = r"http://tkkc.hfut.edu.cn/student/exam/manageExam.do?%s&method=getExerciseInfo&examReplyId=%s&\
-            exerciseId=%s&examStudentExerciseId=%d" % (
+                exerciseId=%s&examStudentExerciseId=%d" % (
                 urlId, examReplyId, id, examStudentExerciseId)
             title = self.craw(next_url)
             ans = self.answers_dict.get[title, 'Not found']
