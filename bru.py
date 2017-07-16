@@ -151,7 +151,7 @@ class Brush:
         f = xlrd.open_workbook('exercise.xls')
         sheets_num = len(f.sheets())
 
-        # 读取XLS中的题目和答案，存进字典（将这段程序放在这，是因为当用户有多门试题库时，刷完一门，切换到另一门时，不用关闭程序只需切换题库Excel即可）
+        # 读取XLS中的题目和答案，存进字典
         for x in range(0, sheets_num):
             xls = f.sheets()[x]
             for i in range(1, xls.nrows):
@@ -193,7 +193,8 @@ class Brush:
         val = bs.form.input
         examReplyId = val['value']
 
-        examId = re.findall(r'<input type="hidden" name="examId" id="examId" value="(.*?)" />', wb_data, re.S)[0]
+        examId = re.findall(r'<input type="hidden" name="examId" id="examId" value="(.*?)" />',
+                            wb_data, re.S)[0]
 
         exerciseId = re.findall(r'exerciseId":(.*?),', eval, re.S)
 
@@ -206,7 +207,8 @@ class Brush:
 
         # id对应exerciseID,id2对应examStudetExerciseId
         for id in exerciseId:
-            next_url = r"http://tkkc.hfut.edu.cn/student/exam/manageExam.do?%s&method=getExerciseInfo&examReplyId=%s&exerciseId=%s&examStudentExerciseId=%d" % (
+            next_url = r"http://tkkc.hfut.edu.cn/student/exam/manageExam.do?%s&method=getExerciseInfo&examReplyId=%s&\
+            exerciseId=%s&examStudentExerciseId=%d" % (
                 urlId, examReplyId, id, examStudentExerciseId)
             title = self.craw(next_url)
             ans = self.answers_dict.get[title, 'Not found']
