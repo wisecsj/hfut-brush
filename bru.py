@@ -24,15 +24,12 @@ class Brush:
     answers_dict = dict()
     excel_path = 'exercise.xls'  # where excel file store
 
-    def __init__(self, save_url=save_url, headers=headers, login_url=login_url, max_times=max_times, excel_path=excel_path):
+    def __init__(self, **kwargs):
         self.ID = input("请输入学号\n")
         self.Pwd = getpass.getpass("请输入密码\n")
         tmp = ['save_url', 'headers', 'login_url', 'max_times', 'excel_path']
-        self.save_url = save_url
-        self.headers = headers
-        self.login_url = login_url
-        self.max_times = max_times
-        self.excel_path = excel_path
+        if kwargs:
+            self.__dict__.update(kwargs)
 
     def login(self):
         """to login tkkc.hfut.edu.cn
@@ -68,7 +65,7 @@ class Brush:
             else:
                 print('Login Success !')
                 break
-            # time.sleep(0.01)
+                # time.sleep(0.01)
 
         else:
             print("Login failed after trying the max_times")
