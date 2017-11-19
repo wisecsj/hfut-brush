@@ -8,12 +8,13 @@ import time
 from bs4 import BeautifulSoup
 import zipfile
 import getpass
+
 save_url = "http://tkkc.hfut.edu.cn/student/exam/manageExam.do?1479131327464&method=saveAnswer"
 index = 1
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:51.0) Gecko/20100101 Firefox/41.0",
            "Host": "tkkc.hfut.edu.cn",
            "X-Requested-With": "XMLHttpRequest",
-		   #'Content-Type': 'application/json,text/javascript,*/*'
+           # 'Content-Type': 'application/json,text/javascript,*/*'
 
            }
 ses = requests.session()
@@ -39,7 +40,7 @@ def get_new_data():
 
 rlt = 10
 times = 1
-while rlt>3:
+while rlt > 3:
     announce = get_new_data()
     code = getcode().text
     print("Trying " + ' ' + code)
@@ -51,7 +52,7 @@ while rlt>3:
         "randomCode": code
     }
     res = ses.post(login_url, data=logInfo, headers=headers)
-    #print(res.text)
+    # print(res.text)
     time.sleep(0.01)
     times += 1
     rlt -= 1
@@ -73,7 +74,7 @@ while rlt>3:
 else:
     print("Maybe you typed wrong password")
 
- # 用于存放excel中question, answer键值对的字典
+    # 用于存放excel中question, answer键值对的字典
 
 result = dict()
 
@@ -96,8 +97,9 @@ def craw(url, retries=2):
             print("get failed", index)
             return ''
 
+
 # 从字典中根据题目找到并返回答案
-def answer_func(t):
+def answer_func(title):
     return result.get(title, "Not Found")
 
 
@@ -142,85 +144,91 @@ def submit(ans, id, id2, id3, id4, index, retries=2):
         else:
             print("get failed", index)
             return ''
+
+
 finished = 2
-while (finished == 2) or (finished ==0):
+while (finished == 2) or (finished == 0):
     if finished == 2:
         html = ses.get(main1_url)
         html = html.text
-        s = re.findall(r'courseId=(\d+)',html, re.M)
+        s = re.findall(r'courseId=(\d+)', html, re.M)
         print("获取课程ID成功")
         ss = list(set(s))
         ss.sort(key=s.index)
-        print (ss)
+        print(ss)
         courseId = input("请输入上一句打印出来的课程Id来进行自动化讨论和做题(如全部刷完请输入0退出):")
         temp = courseId
-        course_url = main_url+"/student/teachingTask/coursehomepage.do?courseId="+courseId
+        course_url = main_url + "/student/teachingTask/coursehomepage.do?courseId=" + courseId
         course_url = ses.get(course_url).text
-        #print("获取TaskId成功")
-        s1 = re.findall(r'teachingTaskId=(\d+)',course_url, re.M)
-        TaskId_url= main_url+"/student/resource/index.do?teachingTaskId="+s1[0]
-        taskhomepage_url = main_url+"/student/teachingTask/taskhomepage.do?&teachingTaskId="+s1[0]
+        # print("获取TaskId成功")
+        s1 = re.findall(r'teachingTaskId=(\d+)', course_url, re.M)
+        TaskId_url = main_url + "/student/resource/index.do?teachingTaskId=" + s1[0]
+        taskhomepage_url = main_url + "/student/teachingTask/taskhomepage.do?&teachingTaskId=" + s1[0]
         taskhomepage_url = ses.get(taskhomepage_url).text
-        TaskId_url = ses.get(TaskId_url).text 
-        faq_url = main_url+"/student/bbs/index.do?teachingTaskId="+s1[0]
+        TaskId_url = ses.get(TaskId_url).text
+        faq_url = main_url + "/student/bbs/index.do?teachingTaskId=" + s1[0]
         faq_url = ses.get(faq_url).text
-        s4 = re.findall(r'discussId=(\d+)',faq_url, re.M)
-        s5 = re.findall(r'forumId=(\d+)',faq_url, re.M)
-        discuss_url = main_url+"/student/bbs/manageDiscuss.do?&method=view&teachingTaskId="+s1[0]+"&discussId="+s4[0]
+        s4 = re.findall(r'discussId=(\d+)', faq_url, re.M)
+        s5 = re.findall(r'forumId=(\d+)', faq_url, re.M)
+        discuss_url = main_url + "/student/bbs/manageDiscuss.do?&method=view&teachingTaskId=" + s1[0] + "&discussId=" + \
+                      s4[0]
         discuss_url = ses.get(discuss_url).text
-        post_url = main_url+"/student/bbs/manageDiscuss.do?method=reply"
-        soup = BeautifulSoup(discuss_url,"lxml")
+        post_url = main_url + "/student/bbs/manageDiscuss.do?method=reply"
+        soup = BeautifulSoup(discuss_url, "lxml")
         content = soup.find_all("p")
         if len(content):
             content = content[-1]
-            post_data = {'discussId':s4[0],'forumId':s5[0],'type':1,'teachingTaskId':s1[0],'content':content}
+            post_data = {'discussId': s4[0], 'forumId': s5[0], 'type': 1, 'teachingTaskId': s1[0], 'content': content}
         else:
-            discuss_url = main_url+"/student/bbs/manageDiscuss.do?&method=view&teachingTaskId="+s1[0]+"&discussId="+s4[2]
+            discuss_url = main_url + "/student/bbs/manageDiscuss.do?&method=view&teachingTaskId=" + s1[
+                0] + "&discussId=" + s4[2]
             discuss_url = ses.get(discuss_url).text
-            soup = BeautifulSoup(discuss_url,"lxml")
+            soup = BeautifulSoup(discuss_url, "lxml")
             content = soup.find_all("p")
             content = content[-1]
-            post_data = {'discussId':s4[2],'forumId':s5[0],'type':1,'teachingTaskId':s1[0],'content':content}
-        #print (content)
-        
+            post_data = {'discussId': s4[2], 'forumId': s5[0], 'type': 1, 'teachingTaskId': s1[0], 'content': content}
+        # print (content)
 
-        p = ses.post(post_url,data=post_data,headers=headers)
-        #print ("参加讨论成功一次")
-        discuss_url1 = main_url+"/student/bbs/manageDiscuss.do?&method=view&teachingTaskId="+s1[0]+"&discussId="+s4[1]
+
+        p = ses.post(post_url, data=post_data, headers=headers)
+        # print ("参加讨论成功一次")
+        discuss_url1 = main_url + "/student/bbs/manageDiscuss.do?&method=view&teachingTaskId=" + s1[0] + "&discussId=" + \
+                       s4[1]
         discuss_url1 = ses.get(discuss_url1).text
-        soup = BeautifulSoup(discuss_url1,"lxml")
+        soup = BeautifulSoup(discuss_url1, "lxml")
         content1 = soup.find_all("p")
         if len(content1):
             content1 = content1[-1]
-            post_data1 = {'discussId':s4[1],'forumId':s5[0],'type':1,'teachingTaskId':s1[0],'content':content1}
+            post_data1 = {'discussId': s4[1], 'forumId': s5[0], 'type': 1, 'teachingTaskId': s1[0], 'content': content1}
         else:
-            discuss_url1 = main_url+"/student/bbs/manageDiscuss.do?&method=view&teachingTaskId="+s1[0]+"&discussId="+s4[3]
+            discuss_url1 = main_url + "/student/bbs/manageDiscuss.do?&method=view&teachingTaskId=" + s1[
+                0] + "&discussId=" + s4[3]
             discuss_url1 = ses.get(discuss_url1).text
-            soup = BeautifulSoup(discuss_url1,"lxml")
+            soup = BeautifulSoup(discuss_url1, "lxml")
             content1 = soup.find_all("p")
             content1 = content1[-1]
-            post_data1 = {'discussId':s4[3],'forumId':s5[0],'type':1,'teachingTaskId':s1[0],'content':content1}
-        #content1 = content1[-1]
-        #print (content1)
+            post_data1 = {'discussId': s4[3], 'forumId': s5[0], 'type': 1, 'teachingTaskId': s1[0], 'content': content1}
+        # content1 = content1[-1]
+        # print (content1)
 
-        p1 = ses.post(post_url,data=post_data1,headers=headers)	
-        print ("参加讨论成功两次")		
+        p1 = ses.post(post_url, data=post_data1, headers=headers)
+        print("参加讨论成功两次")
         finished = 0
     if finished == 0:
         html = ses.get(main1_url).text
-        s = re.findall(r'courseId=(\d+)',html, re.M)
-        #print("获取课程ID成功")
+        s = re.findall(r'courseId=(\d+)', html, re.M)
+        # print("获取课程ID成功")
         ss = list(set(s))
         ss.sort(key=s.index)
-        #print (ss)
+        # print (ss)
         courseId = temp
-        #print("获取TaskId成功")
-        s1 = re.findall(r'teachingTaskId=(\d+)',course_url, re.M)
-        s2 = re.findall(r'"id":(\d+)',TaskId_url, re.M)
-        down_url = main_url+"/filePreviewServlet?indirect=true&resourceId="+s2[0]
-        #print("获取下载链接成功")
+        # print("获取TaskId成功")
+        s1 = re.findall(r'teachingTaskId=(\d+)', course_url, re.M)
+        s2 = re.findall(r'"id":(\d+)', TaskId_url, re.M)
+        down_url = main_url + "/filePreviewServlet?indirect=true&resourceId=" + s2[0]
+        # print("获取下载链接成功")
         d = ses.get(down_url)
-        with open("excel.zip","wb") as code:
+        with open("excel.zip", "wb") as code:
             code.write(d.content)
         file_list = os.listdir(r'.')
         for file_name in file_list:
@@ -232,36 +240,51 @@ while (finished == 2) or (finished ==0):
                     file_zip.extract(file, r'.')
                 file_zip.close()
                 os.remove(file_name)
-        s3 = re.findall(r'assignmentId=(\d+)',taskhomepage_url, re.M)
-        #print (s3)
-        s4 = re.findall(r'examId=(\d+)',taskhomepage_url, re.M)
-        #exam_url = main_url+"/student/exam/manageExam.do?&method=doExam&examId="+s4[0]
-        test_url = main_url+"/student/assignment/manageAssignment.do?method=doAssignment&assignmentId="+s3[0]
-        test_url2 = main_url+"/student/assignment/manageAssignment.do?method=doAssignment&assignmentId="+s3[1]
-        test_url3 = main_url+"/student/assignment/manageAssignment.do?method=doAssignment&assignmentId="+s3[2]
+        s3 = re.findall(r'assignmentId=(\d+)', taskhomepage_url, re.M)
+        # print (s3)
+        s4 = re.findall(r'examId=(\d+)', taskhomepage_url, re.M)
+        # exam_url = main_url+"/student/exam/manageExam.do?&method=doExam&examId="+s4[0]
+        test_url = main_url + "/student/assignment/manageAssignment.do?method=doAssignment&assignmentId=" + s3[0]
+        test_url2 = main_url + "/student/assignment/manageAssignment.do?method=doAssignment&assignmentId=" + s3[1]
+        test_url3 = main_url + "/student/assignment/manageAssignment.do?method=doAssignment&assignmentId=" + s3[2]
         if len(s3) == 3:
-            start_url_list = [test_url,test_url2,test_url3]
+            start_url_list = [test_url, test_url2, test_url3]
         elif len(s3) == 4:
-            test_url4 = main_url+"/student/assignment/manageAssignment.do?method=doAssignment&assignmentId="+s3[3]
-            start_url_list = [test_url,test_url2,test_url3,test_url4]
+            test_url4 = main_url + "/student/assignment/manageAssignment.do?method=doAssignment&assignmentId=" + s3[3]
+            start_url_list = [test_url, test_url2, test_url3, test_url4]
         else:
-            test_url5 = main_url+"/student/assignment/manageAssignment.do?method=doAssignment&assignmentId="+s3[4]
-            start_url_list = [test_url,test_url2,test_url3,test_url4,test_url5]
-        #print("获取练习题目链接成功")
-        #print (test_url,"\n",test_url2,'\n',test_url3)
-        #start_url_list = [test_url,test_url2,test_url3,test_url4]
+            test_url5 = main_url + "/student/assignment/manageAssignment.do?method=doAssignment&assignmentId=" + s3[4]
+            start_url_list = [test_url, test_url2, test_url3, test_url4, test_url5]
+        # print("获取练习题目链接成功")
+        # print (test_url,"\n",test_url2,'\n',test_url3)
+        # start_url_list = [test_url,test_url2,test_url3,test_url4]
         for start_url in start_url_list:
-            #print (exam_url)
-            #start_url = input("请输入练习题目链接(就在上面↑)\n")
+            # print (exam_url)
+            # start_url = input("请输入练习题目链接(就在上面↑)\n")
             myfile = xlrd.open_workbook('exercise.xls')
             lenOfXls = len(myfile.sheets())
+            # 存储sheet名字的列表
+            sheet_names = myfile.sheet_names()
+            # 题库excel文件的类型
+            # 3：单 双 判断
+            # 2：单 双
+            # 3：单 判断
+            if len(sheet_names) == 3:
+                excel_type = 3
+            elif '多选题' in sheet_names:
+                excel_type = 2
+            else:
+                excel_type = 1
             # 读取XLS中的题目和答案，存进字典（将这段程序放在这，是因为当用户有多门试题库时，刷完一门，切换到另一门时，不用关闭程序只需切换题库Excel即可）
             for x in range(0, lenOfXls):
                 xls = myfile.sheets()[x]
                 for i in range(1, xls.nrows):
-                    title = xls.cell(i, 0).value
+                    title = xls.cell(i, 0).value.strip()
                     if x == 1 and lenOfXls == 2:
-                        answer = xls.cell(i, 2).value
+                        if excel_type == 2:
+                            answer = xls.cell(i, 7).value
+                        else:
+                            answer = xls.cell(i, 2).value
                     elif x == 1 and lenOfXls == 3:
                         answer = xls.cell(i, 7).value
                     elif x == 2 and lenOfXls == 3:
@@ -273,8 +296,8 @@ while (finished == 2) or (finished ==0):
             body = ses.get(start_url, headers=headers)
             body.encoding = 'utf-8'
             wb_data = body.text
-            #print(wb_data)
-   
+            # print(wb_data)
+
 
             eval = re.findall(r'eval(.*?)]\);', wb_data, re.S)[0]
 
@@ -297,7 +320,7 @@ while (finished == 2) or (finished ==0):
             for id in exerciseId:
                 next_url = r"http://tkkc.hfut.edu.cn/student/exam/manageExam.do?method=getExerciseInfo&examReplyId=%s&exerciseId=%s&examStudentExerciseId=%d" % (
                     examReplyId, id, examStudentExerciseId)
-                title = craw(next_url)
+                title = craw(next_url).strip()
                 ans = answer_func(title)
                 submit(ans, id, examStudentExerciseId, examReplyId, examId, index)
                 # time.sleep(1)
