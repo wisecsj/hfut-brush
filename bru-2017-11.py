@@ -4,12 +4,19 @@ v 2.0
 """
 # coding= utf-8
 import re
+
+import aiohttp
 import requests
 import xlrd
 import urllib
 import time
 from bs4 import BeautifulSoup
 import getpass
+import asyncio
+import copy
+import os
+
+print(os.getcwd())
 
 save_url = "http://tkkc.hfut.edu.cn/student/exam/manageExam.do?1479131327464&method=saveAnswer"
 # index用于提示题目序号
@@ -21,11 +28,14 @@ headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:51.0) Gecko/20
 
 ses = requests.session()
 # ses.headers.update({"Cookie": "JSESSIONID=D182E6F264EBAEB5D423F11E38B15E21.tomcat2"})
-ID = input("请输入学号\n")
+# ID = input("请输入学号\n")
 # Pwd = input("请输入密码\n")
 
-Pwd = getpass.getpass("请输入密码\n")
+# Pwd = getpass.getpass("请输入密码\n")
 
+# to be removed
+ID = '2014211671'
+Pwd = 'qq804693927'
 login_url = "http://tkkc.hfut.edu.cn/login.do?"
 
 
@@ -42,42 +52,45 @@ def get_new_data():
     return announce
 
 
-rlt = 10
-times = 1
-while rlt > 3:
-    announce = get_new_data()
-    code = getcode().text
-    print("Trying " + ' ' + code)
-    logInfo = {
-        announce: 'announce',
-        'loginMethod': '{}button'.format(announce),
-        "logname": ID,
-        "password": Pwd,
-        "randomCode": code
-    }
-    res = ses.post(login_url, data=logInfo, headers=headers)
-    # print(res.text)
-    time.sleep(0.01)
-    times += 1
-    rlt -= 1
-    if res.text.find("验证码错误") != -1:
-        print("Wrong verify code, Trying again ...")
-        continue
-    elif res.text.find("身份验证服务器未建立连接") != -1:
-        print("Wrong student number, Check and reinput please ...")
-        ID = input("请输入学号\n")
-        continue
-    elif res.text.find("密码不正确") != -1:
-        print("Wrong password, Check and reinput please ...")
-        Pwd = getpass.getpass("请输入密码\n")
-        continue
-    else:
-        print('Login Success !')
-        break
+def login():
+    global ID, Pwd
+    rlt = 10
+    times = 1
+    while rlt > 3:
+        announce = get_new_data()
+        code = getcode().text
+        print("Trying " + ' ' + code)
+        logInfo = {
+            announce: 'announce',
+            'loginMethod': '{}button'.format(announce),
+            "logname": ID,
+            "password": Pwd,
+            "randomCode": code
+        }
+        res = ses.post(login_url, data=logInfo, headers=headers)
+        # print(res.text)
+        time.sleep(0.01)
+        times += 1
+        rlt -= 1
+        if res.text.find("验证码错误") != -1:
+            print("Wrong verify code, Trying again ...")
+            continue
+        elif res.text.find("身份验证服务器未建立连接") != -1:
+            print("Wrong student number, Check and reinput please ...")
+            ID = input("请输入学号\n")
+            continue
+        elif res.text.find("密码不正确") != -1:
+            print("Wrong password, Check and reinput please ...")
+            Pwd = getpass.getpass("请输入密码\n")
+            continue
+        else:
+            print('Login Success !')
+            return ses.cookies
 
-else:
-    print("Maybe you typed wrong password")
-    # 用于存放excel中question, answer键值对的字典
+    else:
+        print("Maybe you typed wrong password")
+        # 用于存放excel中question, answer键值对的字典
+
 
 result = dict()
 
@@ -85,29 +98,48 @@ result = dict()
 # retries默认为2，表示尝试次数。以防某种原因，某次连接失败
 
 
-def craw(url, retries=2):
-    try:
-        b = ses.post(url, headers=headers)
-        b.encoding = 'utf-8'
-        d = b.text
-        title = re.findall(r'&nbsp;(.*?)","', d, re.S)[0]
-        return title
-    except Exception as e:
-        print(e)
-        if retries > 0:
-            return craw(url, retries=retries - 1)
+# def craw(url, retries=2):
+#     try:
+#         b = ses.post(url, headers=headers)
+#         b.encoding = 'utf-8'
+#         d = b.text
+#         title = re.findall(r'&nbsp;(.*?)","', d, re.S)[0]
+#         return title.strip()
+#     except Exception as e:
+#         print(e)
+#         if retries > 0:
+#             return craw(url, retries=retries - 1)
+#         else:
+#             print("get failed", index)
+#             return ''
+
+
+async def craw(url, session, retries=2):
+    ses = session
+    async with ses.post(url) as resp:
+        if str(resp.status).startswith('2'):
+            d = await resp.text()
+        elif retries > 0:
+            return craw(url, session, retries=retries - 1)
         else:
-            print("get failed", index)
-            return ''
+            print('题号{}抓取失败'.format(index))
+            return 'error'
+    # b = ses.post(url, headers=headers)
+    # b.encoding = 'utf-8'
+    # d = b.text
+    # print(d)
+    title = re.findall(r'&nbsp;(.*?)","', d, re.S)[0]
+    return title
 
 
 # 从字典中根据题目找到并返回答案
 def answer_func(t):
-    return result.get(title, "Not Found")
+    return result.get(t, "Not Found")
 
 
 # 将找到的答案提交给服务器
-def submit(ans, id, id2, id3, id4, index, retries=2):
+async def submit(ans, id, id2, id3, id4, index, session, retries=2):
+    ses = session
     dx = ["false", "false", "false", "false", "false"]
     try:
         if ans.find('A') != -1:
@@ -137,13 +169,15 @@ def submit(ans, id, id2, id3, id4, index, retries=2):
                  "DuoXanswerD": dx[3],
                  "DuoXanswerE": dx[4],
                  "DuoXanswer": ans}  # 部分题库的多选是分成5个来提交，还有的是只用一个进行提交
-        body = ses.post(save_url, data=data2, headers=headers)
-        wb_data = body.text
+        async with ses.post(save_url, data=data2, headers=headers) as resp:
+            wb_data = await resp.text()
+        # body = ses.post(save_url, data=data2, headers=headers)
+        # wb_data = body.text
         print(index, wb_data, ans, sep='\t')
     except Exception as e:
         print(e)
         if retries > 0:
-            return submit(ans, id, id2, id3, id4, index, retries=retries - 1)
+            return submit(ans, id, id2, id3, id4, index, session, retries=retries - 1)
         else:
             print("get failed", index)
             return ''
@@ -151,6 +185,29 @@ def submit(ans, id, id2, id3, id4, index, retries=2):
 
 # 此变量用于判断用户是否要继续刷课
 finished = 0
+
+#
+cookies = login()
+
+cookies = requests.utils.dict_from_cookiejar(cookies)
+
+
+# print(cookies)
+
+
+async def once(exerciseId):
+    global urlId, examReplyId, index, e_r, examStudentExerciseId_c
+    examStudentExerciseId_l = e_r[exerciseId]
+    # 题的序号，从1开始计数
+    index_l = examStudentExerciseId_l - examStudentExerciseId_c + 1
+    next_url = r"http://tkkc.hfut.edu.cn/student/exam/manageExam.do?%s&method=getExerciseInfo&examReplyId=%s&exerciseId=%s&examStudentExerciseId=%d" % (
+        urlId, examReplyId, exerciseId, examStudentExerciseId_l)
+    async with aiohttp.ClientSession(cookies=cookies, headers=headers) as session:
+        index += 1
+        title = await craw(next_url, session)
+        ans = answer_func(title)
+        await submit(ans, exerciseId, examStudentExerciseId_l, examReplyId, examId, index_l, session)
+
 
 while finished == 0:
     start_url = input("请输入测试页面URL\n")
@@ -160,9 +217,9 @@ while finished == 0:
     # 存储sheet名字的列表
     sheet_names = myfile.sheet_names()
     # 题库excel文件的类型
-    # 3：单 双 判断
-    # 2：单 双
-    # 3：单 判断
+    # 3：单 多 判断
+    # 2：单 多
+    # 1：单 判断
     if len(sheet_names) == 3:
         excel_type = 3
     elif '多选题' in sheet_names:
@@ -210,16 +267,28 @@ while finished == 0:
                                        wb_data, re.S)[0]
 
     examStudentExerciseId = int(examStudentExerciseId)
-
+    # 用来与现有examStudentExerciseId相减，得到index
+    examStudentExerciseId_c = copy.copy(examStudentExerciseId)
+    # key 为 exerciseId, value examStudentExerciseId
+    e_r = dict()
+    for i in exerciseId:
+        e_r[i] = examStudentExerciseId
+        examStudentExerciseId += 1
     # id对应exerciseID,id2对应examStudetExerciseId
-    for id in exerciseId:
-        next_url = r"http://tkkc.hfut.edu.cn/student/exam/manageExam.do?%s&method=getExerciseInfo&examReplyId=%s&exerciseId=%s&examStudentExerciseId=%d" % (
-            urlId, examReplyId, id, examStudentExerciseId)
-        title = craw(next_url).strip()  # 部分题目的开头会有空白字符，需要去除
-        ans = answer_func(title)
-        submit(ans, id, examStudentExerciseId, examReplyId, examId, index)
-        # time.sleep(1)
-        index += 1
-        examStudentExerciseId = examStudentExerciseId + 1
+    # for id in exerciseId:
+    #     next_url = r"http://tkkc.hfut.edu.cn/student/exam/manageExam.do?%s&method=getExerciseInfo&examReplyId=%s&exerciseId=%s&examStudentExerciseId=%d" % (
+    #         urlId, examReplyId, id, examStudentExerciseId)
+    #     title = craw(next_url).strip()  # 部分题目的开头会有空白字符，需要去除
+    #     ans = answer_func(title)
+    #     submit(ans, id, examStudentExerciseId, examReplyId, examId, index)
+    #     # time.sleep(1)
+    #     index += 1
+    #     examStudentExerciseId = examStudentExerciseId + 1
+    loop = asyncio.get_event_loop()
+
+    tasks = [once(i) for i in exerciseId]
+
+    # !!! 这里会导致task不是按exerciseId列表里的顺序来执行
+    loop.run_until_complete(asyncio.gather(*tasks))
     # input函数获取到的为字符串，所以进行Type conversion
     finished = int(input("继续请输入0，退出请输入1\n"))
