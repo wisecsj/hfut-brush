@@ -14,9 +14,6 @@ from bs4 import BeautifulSoup
 import getpass
 import asyncio
 import copy
-import os
-
-print(os.getcwd())
 
 save_url = "http://tkkc.hfut.edu.cn/student/exam/manageExam.do?1479131327464&method=saveAnswer"
 # index用于提示题目序号
@@ -26,16 +23,15 @@ headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:51.0) Gecko/20
            "X-Requested-With": "XMLHttpRequest",
            }
 
+print('--------- Powered By Wisej ------------- ')
+
 ses = requests.session()
-# ses.headers.update({"Cookie": "JSESSIONID=D182E6F264EBAEB5D423F11E38B15E21.tomcat2"})
-# ID = input("请输入学号\n")
-# Pwd = input("请输入密码\n")
+ID = input("请输入学号\n")
+Pwd = input("请输入密码\n")
 
 # Pwd = getpass.getpass("请输入密码\n")
 
-# to be removed
-ID = '2014211671'
-Pwd = 'qq804693927'
+
 login_url = "http://tkkc.hfut.edu.cn/login.do?"
 
 

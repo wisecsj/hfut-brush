@@ -8,10 +8,19 @@
 
 具体思路代码中的注释已经写明了。
 
-可以使用pyinstaller来将py转换成exe文件，运行在windows上（或者直接通过repo描述中的url下载）。
+可以使用pyinstaller来将py转换成exe文件，运行在windows上（或者直接通过http://pan.baidu.com/s/1dFClCBn下载）。
 
 转换成exe后，将**试题库的Excel文件放在exe的同级目录下**即可。
+------------------------------
+# Usage
 
+1. python bru-async.py (py>=3.5)
+    需要输入的url为点击下图中红圈后浏览器地址栏的url
+    
+    
+    ![](/images/2.png)
+
+2. 
 ------------------------------
 # Images
 ![运行输出截图](/images/1.png)
