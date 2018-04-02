@@ -8,7 +8,7 @@
 
 具体思路代码中的注释已经写明了。
 
-可以使用pyinstaller来将py转换成exe文件，运行在windows上（或者直接通过http://pan.baidu.com/s/1dFClCBn下载）。
+可以使用pyinstaller来将py转换成exe文件，运行在windows上。或者直接通过https://pan.baidu.com/s/192vGH9p7SHTPMIARlfy9UQ，密码：xygd， 下载。
 
 转换成exe后，将**试题库的Excel文件放在exe的同级目录下**即可。
 ------------------------------
